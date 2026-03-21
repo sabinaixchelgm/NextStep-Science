@@ -1,81 +1,73 @@
 import azure.functions as func
-import logging
+import azure.durable_functions as df
 import os
-import json
+import logging
+import uuid
+import re
 from azure.storage.blob import BlobServiceClient
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+# 1. Importar los Blueprints
+from blueprints.orchestrators import bp as orchestrator_bp
+from blueprints.activities import bp as activities_bp
 
-@app.route(route="health", methods=["GET"])
-def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Endpoint de diagnóstico.
-    Verifica que el servicio backend esté en línea y respondiendo.
-    """
-    logging.info('Ejecutando health_check.')
-    return func.HttpResponse(
-        "El servidor está vivo y funcionando correctamente.",
-        status_code=200
-    )
+# 2. Inicializar la aplicación principal
+app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 
-@app.route(route="upload", methods=["POST"])
-def upload_file(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Endpoint de carga de archivos.
-    Recibe un archivo binario y lo almacena en Azure Blob Storage.
-    """
-    logging.info('Ejecutando upload_file.')
+# 3. Registrar los Blueprints en la aplicación
+app.register_functions(orchestrator_bp)
+app.register_functions(activities_bp)
 
-    try:
-        file_bytes = req.get_body()
-        file_name = req.headers.get("file-name")
+# =========================================================
+# HTTP STARTER (User-facing API)
+# =========================================================
+@app.route(route="analyze", methods=["POST"])
+@app.durable_client_input(client_name="client")
+async def analyze_document_async_starter(req: func.HttpRequest, client: df.DurableOrchestrationClient) -> func.HttpResponse:
+    logging.info("A new document analysis request has been received.")
 
-        if not file_bytes or not file_name:
-            return func.HttpResponse(
-                "Error: Falta el archivo o el encabezado 'file-name'.", 
-                status_code=400
+    # A. Validate and Upload the Document
+    files = req.files
+    if not files or 'file' not in files:
+        return func.HttpResponse(
+            "Falta el archivo. Envía la solicitud con 'Content-Type: multipart/form-data' y el archivo en el parámetro 'file'.",
+            status_code=400
             )
 
-        # Conexión a Azure Storage
-        connection_string = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-        
-        # Subida al contenedor 'uploads'
-        blob_client = blob_service_client.get_blob_client(container="uploads", blob=file_name)
-        blob_client.upload_blob(file_bytes, overwrite=True)
+    uploaded_file = files['file']
+    file_bytes = uploaded_file.read()
+    if not file_bytes:
+        return func.HttpResponse("El archivo está vacío.", status_code=400)
 
-        return func.HttpResponse(
-            f"Archivo '{file_name}' subido correctamente.",
-            status_code=201
-        )
+    unique_id = str(uuid.uuid4())
+    original_filename = uploaded_file.filename
+    safe_filename = re.sub(r'[^a-zA-Z0-9_\.-]', '_', original_filename)
+    blob_name = f"{unique_id}-{safe_filename}"
+ 
+    storage_connection = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+ 
+    if not storage_connection:
+        return func.HttpResponse("Falta la variable de entorno AZURE_STORAGE_CONNECTION_STRING.", status_code=500)
 
-    except Exception as e:
-        logging.error(f"Error en upload_file: {e}")
-        return func.HttpResponse("Error interno del servidor.", status_code=500)
-
-@app.route(route="analyze", methods=["POST"])
-def analyze_data(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Endpoint de análisis.
-    Simula el procesamiento del LLM devolviendo una estructura JSON predefinida
-    desde un archivo externo.
-    """
-    logging.info('Ejecutando analyze_data.')
-
+    container_name = "raw-documents"
+    blob_service_client = BlobServiceClient.from_connection_string(storage_connection)
+    
     try:
-        # Generamos la ruta absoluta y segura al archivo JSON
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        file_path = os.path.join(dir_path, "mock_data.json")
-        
-        with open(file_path, "r", encoding="utf-8") as file:
-            mock_response = json.load(file)
+        container_client = blob_service_client.create_container(container_name)
+    except: 
+        container_client = blob_service_client.get_container_client(container_name)
 
-        return func.HttpResponse(
-            body=json.dumps(mock_response),
-            mimetype="application/json",
-            status_code=200
-        )
+    container_client.upload_blob(name=blob_name, data=file_bytes)
+    logging.info(f"The document {original_filename} has been securely stored as {blob_name}.")
 
-    except Exception as e:
-        logging.error(f"Error en analyze_data: {e}")
-        return func.HttpResponse("Error interno del servidor.", status_code=500)
+    # B. Start the Orchestration
+    document_context = {
+        "unique_id": unique_id,
+        "original_filename": original_filename,
+        "stored_blob_name": blob_name
+    }
+
+    instance_id = await client.start_new("analyze_orchestrator", None, document_context)
+    logging.info(f"Orchestration started with ID '{instance_id}'.")
+
+    # C. Return the Check Status Response
+    return client.create_check_status_response(req, instance_id)
