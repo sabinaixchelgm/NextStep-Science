@@ -1,56 +1,56 @@
 import azure.durable_functions as df
 import logging
 
-# Creamos el Blueprint para los orquestadores
 bp = df.Blueprint()
 
 @bp.orchestration_trigger(context_name="context")
 def analyze_orchestrator(context: df.DurableOrchestrationContext):
-    # Context data from the starter
     document_context = context.get_input()
     blob_name = document_context.get("stored_blob_name")
+    file_category = document_context.get("file_category", "document")
 
-    # Initial status
-    context.set_custom_status("Inicio del flujo de análisis secuencial.")
+    context.set_custom_status("Inicio del Sistema Multi-Agente.")
 
     try:
-        # Step 1: Content Extraction
-        context.set_custom_status("Extrayendo texto de la base de datos de Blob Storage.")
-        raw_text = yield context.call_activity("extract_text_from_storage", blob_name)
-        
-        if not raw_text.strip():
-            raise Exception("El documento procesado no contiene texto legible.")
+        # FASE 1: Extracción de Datos
+        context.set_custom_status("Fase 1: Extrayendo datos en entorno seguro.")
+        if file_category == "csv":
+            raw_data = yield context.call_activity("extract_csv_data", blob_name)
+        elif file_category == "document":
+            raw_data = yield context.call_activity("extract_pdf_data", blob_name)
+        else:
+            raw_data = yield context.call_activity("extract_image_data", blob_name)
 
-        # Step 2: Input Validation
-        context.set_custom_status("Validando seguridad del texto de entrada.")
-        yield context.call_activity("validate_input_safety", raw_text)
+        # FASE 2: Agente Analista de Datos
+        context.set_custom_status("Fase 2: Agente Analista procesando tendencias estadísticas.")
+        statistical_trends = yield context.call_activity("agent_data_analyst", raw_data)
 
-        # Step 3: AI Reasoning
-        context.set_custom_status("Generando análisis de IA con OpenAI.")
-        ai_reasoning_result = yield context.call_activity("generate_ai_reasoning", raw_text)
+        # FASE 3: Agente de Razonamiento Científico
+        context.set_custom_status("Fase 3: Agente Científico generando hipótesis y escenarios.")
+        reasoning_proposal = yield context.call_activity("agent_scientific_reasoning", statistical_trends)
 
-        # Step 4: Output Validation
-        context.set_custom_status("Validando seguridad del análisis de IA generado.")
-        yield context.call_activity("validate_output_safety", ai_reasoning_result)
-        
-        # Successful completion
-        context.set_custom_status("Análisis secuencial completado con éxito.")
-        container_name = "raw-documents"
-        
+        # FASE 4: Agente Supervisor (Safety & Compliance)
+        context.set_custom_status("Fase 4: Agente Supervisor evaluando bioseguridad y cumplimiento.")
+        supervisor_evaluation = yield context.call_activity("agent_safety_supervisor", reasoning_proposal)
+
+        # Evaluación del Hard Block
+        if supervisor_evaluation.get("status") == "HARD_BLOCK":
+            context.set_custom_status("HARD BLOCK: Protocolo inseguro detectado.")
+            return {
+                "status": "Blocked",
+                "compliance_explanation": supervisor_evaluation.get("explanation"),
+                "original_filename": document_context.get("original_filename")
+            }
+
+        # Salida Exitosa
+        context.set_custom_status("Flujo completado. Sugerencias aprobadas por Supervisor.")
         return {
             "status": "Success",
             "original_filename": document_context.get("original_filename"),
-            "stored_blob_path": f"{container_name}/{blob_name}",
-            "raw_extracted_text_preview": raw_text[:500],
-            "ai_reasoning_summary": ai_reasoning_result
+            "scientific_proposal": reasoning_proposal
         }
 
     except Exception as e:
         error_message = str(e)
-        context.set_custom_status(f"Fallo secuencial: {error_message}")
-        logging.error(f"Sequential Failure in Orchestration '{context.instance_id}': {error_message}")
-        
-        return {
-            "status": "Error",
-            "error_detail": error_message
-        }
+        logging.error(f"Fallo en Orquestador Multi-Agente: {error_message}")
+        return {"status": "Error", "error_detail": error_message}

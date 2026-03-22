@@ -27,6 +27,14 @@ async def process_single_document(
     safe_filename = re.sub(r'[^a-zA-Z0-9_\.-]', '_', doc.original_filename)
     blob_name = f"{unique_id}-{safe_filename}"
 
+    # --- categorizacion de documento ---
+    file_category = "document" # Default para .pdf
+    if doc.extension == '.csv':
+        file_category = "csv"
+    elif doc.extension in ['.jpg', '.jpeg', '.png']:
+        file_category = "image"
+    # --------------------------------------
+
     try:
         blob_client = container_client.get_blob_client(blob_name)
         await blob_client.upload_blob(doc.content, overwrite=True)
@@ -34,13 +42,15 @@ async def process_single_document(
         document_context = {
             "unique_id": unique_id,
             "original_filename": doc.original_filename,
-            "stored_blob_name": blob_name
+            "stored_blob_name": blob_name,
+            "file_category": file_category
         }
 
         instance_id = await durable_client.start_new("analyze_orchestrator", None, document_context)
         status_response = durable_client.create_check_status_response(req, instance_id)
         status_json = json.loads(status_response.get_body().decode('utf-8'))
         status_json['filename'] = doc.original_filename
+        status_json['file_category'] = file_category
         
         return status_json
 

@@ -8,3 +8,4 @@ openai
 filetype
 Pillow
 pypdf
+pandas
