@@ -46,13 +46,24 @@
 
         <div class="chat-container">
             <div class="chat-messages">
-                <div class="message user">¿Cuál es el siguiente paso del protocolo?</div>
-                <div class="message assistant">Debes verificar la presión del reactor antes de iniciar el calentamiento.</div>
+                @for (msg of chatHistory; track $index){
+                    <div class="message" [ngClass] = "msg.role">
+                        {{msg.text}}
+                    </div>
+                }
+                @if (isTyping){
+                    <div class="message assistant">🤖 Escribiendo...</div>
+                }
+                <!-- <div class="message user">¿Cuál es el siguiente paso del protocolo?</div>
+                <div class="message assistant">Debes verificar la presión del reactor antes de iniciar el calentamiento.</div> -->
             </div>
 
             <div class="chat-input-area">
-                <input type="text" placeholder="Haz una pregunta sobre el experimento...">
-                <button class="send-btn">➔</button>
+                <input type="text" 
+                [(ngModel)] = "userInput"
+                (keyup.enter) = "onSendMessage()"
+                placeholder="Haz una pregunta sobre el experimento...">
+                <button (click)="onSendMessage()" class="send-btn">➔</button>
             </div>
         </div>
     </div>

@@ -1,16 +1,22 @@
 import { Component } from '@angular/core';
 import { Data } from '../../services/data';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
 
 @Component({
   selector: 'app-dashboard',
-  imports: [],
+  imports: [CommonModule, FormsModule],
+  standalone: true,
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
 export class Dashboard {
 
   userInput: string = '';
-  chatHistory: any[] = [];
+  chatHistory: any[] = [
+    { role: 'assistant', text: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?' }
+  ];
   isTyping: boolean = false;
 
   constructor(private dataService: Data){}
