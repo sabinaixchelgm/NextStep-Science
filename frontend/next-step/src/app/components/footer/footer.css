@@ -1,0 +1,28 @@
+.credits {
+    height: 40px; 
+    border-top: 1px solid #DADCE0;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 0.85rem;
+    color: #70757a;
+    width: 100%;
+}
+
+.credits span:last-child{
+    margin-left: auto;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between; /* Empuja el equipo a la izquierda y la versión a la derecha */
+    width: 100%;
+    font-size: 0.85rem;
+    color: #70757a;
+}
+
+.app-version {
+    font-weight: 400;
+    opacity: 0.8;
+}

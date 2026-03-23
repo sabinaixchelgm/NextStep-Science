@@ -1,0 +1,27 @@
+/*Configuracion global*/
+
+/*Reset basico*/
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root{
+    --white: #fff;
+    --gray-border: #DADCE0;
+    --sidebar-bg: #f8f9fa;
+    --text-main: #3C4043;
+}
+
+body{
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Ocupa el 100% de la ventana */
+    width: 100vw;
+    overflow: hidden; /* Evita scroll doble */
+    background-color: var(--white);
+    font-family: 'Noto Sans', sans-serif;
+    color: var(--text-main);
+}
+

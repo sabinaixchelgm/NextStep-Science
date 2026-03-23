@@ -1,0 +1,50 @@
+.list-experiments { 
+    height: 100%; /* Para que ocupe todo el alto disponible */
+    border-right: 1.5px solid #DADCE0;
+    background-color: #f8f9fa;
+    padding: 20px;
+}
+
+.sidebar-content h3 {
+    font-size: 0.9rem;
+    color: #70757a;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-item {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s;
+}
+
+.history-item.active {
+    background: #e8f0fe;
+    color: #1967d2;
+    font-weight: 500;
+}
+
+.history-item:hover:not(.active) {
+    background: #eeeeee;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.green {
+    background: #34a853;
+}
+
+.gray {
+    background: #9aa0a6;
+}

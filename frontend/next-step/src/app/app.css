@@ -1,0 +1,36 @@
+/* src/app/app.css */
+
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* Esto obliga a todo el componente App a estirarse dentro del body */
+    height: 100%;
+}
+
+.main-container {
+    display: flex;
+    flex: 1;  
+    width: 100%;        /* Esto estira el Sidebar hasta el borde del Footer */
+    overflow: hidden;
+}
+
+app-sidebar {
+    width: 280px;
+    height: 100%;     /* Ahora sí llegará hasta abajo */
+    display: block;
+}
+
+app-footer {
+    display: block;
+    height: 40px;     /* Altura fija de tu diseño original */
+    flex-shrink: 0;   /* Evita que el body lo aplaste */
+}
+
+.content-area{
+    flex: 1;         /* ¡ESTO ES LO IMPORTANTE! Obliga al Dashboard a ocupar TODO el ancho restante */
+    display: flex;   /* Ayuda a que los hijos internos se alineen bien */
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    background-color: #ffffff; /* Asegura el fondo blanco */
+}
