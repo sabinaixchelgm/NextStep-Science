@@ -45,6 +45,11 @@
 
 
         <div class="chat-container">
+
+            <div class="chat-header-title">
+                <strong>💬 Chat con Asistente</strong>
+            </div>
+
             <div class="chat-messages" #scrollMe>
                 @for (msg of chatHistory; track $index){
                     <div class="message" [ngClass] = "msg.role">

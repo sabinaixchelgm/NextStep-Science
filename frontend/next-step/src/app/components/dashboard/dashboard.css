@@ -7,7 +7,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .dash-title h1 {
@@ -42,7 +42,7 @@
 .drop-zone {
     border: 2px dashed #DADCE0;
     border-radius: 12px;
-    padding: 40px;
+    padding: 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -76,7 +76,7 @@
 }
 
 .data-chart-placeholder {
-    height: 200px;
+    height: 180px;
     background: #f1f3f4;
     border-radius: 4px;
     display: flex;
@@ -85,7 +85,21 @@
     color: #70757a;
 }
 
-/* Contenedor del Chat */
+.chat-header-title {
+    /* Mismo estilo que agent-thought para uniformidad */
+    border-left: 4px solid #1a73e8; 
+    padding: 10px 15px;
+    background: #ffffff; /* Fondo blanco para que resalte del fondo grisáceo del chat */
+    border-bottom: 1px solid #e0e0e0; /* Línea sutil para separar de los mensajes */
+    
+    /* Tipografía */
+    color: #3C4043;
+    font-size: 0.95rem;
+    border-top-left-radius: 8px; /* Para que coincida con el redondeado del contenedor */
+    border-top-right-radius: 8px;
+}
+
+/* Ajuste al contenedor del chat para que no se vea doble borde arriba */
 .chat-container {
     border: 1px solid #e0e0e0;
     margin-top: 30px;
@@ -94,8 +108,11 @@
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
-    height: 300px; /* Altura fija para que tenga scroll */
+    height: 400px; /* Te sugiero subirlo a 400px para que el h3 no robe tanto espacio */
+    overflow: hidden; /* Importante para que el header respete el border-radius */
 }
+
+
 
 .chat-messages {
     flex: 1;
