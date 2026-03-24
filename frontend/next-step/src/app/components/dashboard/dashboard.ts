@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Data } from '../../services/data';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard implements AfterViewChecked {
+export class Dashboard {
 
   // Elemento para autoscroll
   @ViewChild('scrollMe') private myScrollContainer!: ElementRef;
@@ -22,19 +22,22 @@ export class Dashboard implements AfterViewChecked {
     { role: 'assistant', text: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?' }
   ];
   isTyping: boolean = false;
+  private isUserAtBottom = true;
 
   constructor(private dataService: Data){}
 
-  // Logica de autoscroll
-  ngAfterViewChecked(): void {
-    try{
-      setTimeout(() =>
-      {
-        this.myScrollContainer.nativeElement.scrollTop = 
-            this.myScrollContainer.nativeElement.scrollHeight;
-      }, 0);
-    } catch(err){ }
-  }
+  scrollToBottom(): void {
+    try {
+      setTimeout(() => {
+        if (this.myScrollContainer) {
+          this.myScrollContainer.nativeElement.scrollTo({
+            top: this.myScrollContainer.nativeElement.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 100); //100 ms para esperar el render
+    } catch (err) {}
+  }  
 
   onSendMessage(){
     if (!this.userInput.trim()) return;
@@ -43,6 +46,7 @@ export class Dashboard implements AfterViewChecked {
     this.chatHistory.push({ role: 'user', text: this.userInput });
     const tempMessage = this.userInput;
     this.userInput = ''; //Limpiar Input
+    this.scrollToBottom(); // Bajar aqui
     this.isTyping = true;
 
     // 2. Llamamos al servicio
@@ -54,6 +58,7 @@ export class Dashboard implements AfterViewChecked {
       error: (err) => {
         console.error('Error en la comunicación', err);
         this.isTyping = false;
+        this.scrollToBottom(); //Bajar aqui
       }
     });
   }
