@@ -13,6 +13,12 @@ import { FormsModule } from '@angular/forms';
 })
 export class Dashboard {
 
+  ngOnInit() {
+  // Evita que el navegador abra archivos si se sueltan fuera de la zona
+  window.addEventListener('dragover', (e) => e.preventDefault(), false);
+  window.addEventListener('drop', (e) => e.preventDefault(), false);
+}
+
   // Elemento para autoscroll
   @ViewChild('scrollMe') private myScrollContainer!: ElementRef;
 
@@ -22,10 +28,20 @@ export class Dashboard {
     { role: 'assistant', text: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?' }
   ];
   isTyping: boolean = false;
-  private isUserAtBottom = true;
 
+  // Estados para el archivo PDF
+  isDraggingPDF = false;
+  selectedPDFName: string | null = null;
+  isUploadingPDF = false;
+
+  // Estados para la Imagen
+  isDraggingIMG = false;
+  isUploadingIMG = false;
+  selectedIMGName: string | null = null;
+  
   constructor(private dataService: Data){}
 
+  //Funcion para scroll hacia el fondo
   scrollToBottom(): void {
     try {
       setTimeout(() => {
@@ -39,6 +55,7 @@ export class Dashboard {
     } catch (err) {}
   }  
 
+  //Funcion para envio de mensajes
   onSendMessage(){
     if (!this.userInput.trim()) return;
 
@@ -63,4 +80,65 @@ export class Dashboard {
     });
   }
 
+onDragOver(event: DragEvent, type: string){
+  event.preventDefault();
+  event.stopPropagation();
+  if (type === 'pdf') this.isDraggingPDF = true;
+  if (type === 'img') this.isDraggingIMG = true;
+
 }
+
+onDragLeave(type: string) {
+  if (type === 'pdf') this.isDraggingPDF = false;
+  if (type === 'img') this.isDraggingIMG = false;
+}
+
+onDrop(event: DragEvent, type: 'pdf' | 'img') {
+    event.preventDefault(); // <--- Detiene la apertura del PDF
+    event.stopPropagation();
+    
+    this.onDragLeave(type); // Quitamos el color azul del borde
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+        const file = files[0];
+        console.log("¡Archivo capturado con éxito!", file.name);
+        this.processUpload(file, type);
+    }
+}
+
+private processUpload(file: File, type: 'pdf' | 'img') {
+  // 1. Activamos el spinner correspondiente
+  if (type === 'pdf') this.isUploadingPDF = true;
+  if (type === 'img') this.isUploadingIMG = true;
+
+  // 2. Llamamos al servicio pasando el tipo
+  this.dataService.uploadFile(file, type).subscribe({
+    next: (response) => {
+      console.log(`Subida de ${type} exitosa:`, response);
+      
+      // 3. Desactivamos el spinner
+      if (type === 'pdf') {
+        this.isUploadingPDF = false;
+        this.selectedPDFName = file.name; // Guardamos el nombre para mostrarlo
+      }
+      if (type === 'img') {
+        this.isUploadingIMG = false;
+        this.selectedIMGName = file.name;
+      }
+    },
+    error: (err) => {
+      console.error(`Error al subir ${type}:`, err);
+      this.isUploadingPDF = false;
+      this.isUploadingIMG = false;
+      alert(`Error al subir el archivo ${type}. Revisa la consola.`);
+    }
+  });
+
+}
+
+
+
+}
+
+

@@ -13,16 +13,43 @@
     </div>
 
     <div class="upload-grid">
-        <div class="drop-zone">
+        <div class="drop-zone"
+        [class.dragging]="isDraggingPDF"
+         (dragover)="onDragOver($event, 'pdf')"
+         (dragleave)="onDragLeave('pdf')"
+         (drop)="onDrop($event, 'pdf')">
+         @if (isUploadingPDF) {
+            <div class="spinner"></div>
+            <p>Subiendo manual...</p>
+        } @else if (selectedPDFName) {
+            <span class="icon">✅</span>
+            <h3>{{ selectedPDFName }}</h3>
+            <p>Archivo listo</p>
+        } @else {
             <span class="icon">📄</span>
             <h3>Protocolo (PDF)</h3>
             <p>Arrastra el manual del experimento</p>
+        }
         </div>
 
-        <div class="drop-zone">
+        <div class="drop-zone"
+        [class.dragging]="isDraggingIMG"
+         (dragover)="onDragOver($event, 'img')"
+         (dragleave)="onDragLeave('img')"
+         (drop)="onDrop($event, 'img')">
+
+         @if (isUploadingIMG) {
+            <div class="spinner"></div>
+            <p>Procesando imagen...</p>
+        } @else if (selectedIMGName) {
+            <span class="icon">✅</span>
+            <h3>{{ selectedIMGName }}</h3>
+            <p>Imagen cargada</p>
+        } @else {
             <span class="icon">🖼️</span>
             <h3>Imagen (JPG, PNG)</h3>
             <p>Sube la imagen relacionada con el experimento</p>
+        }
         </div>
 
         <div class="drop-zone">
