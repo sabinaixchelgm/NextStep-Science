@@ -97,9 +97,57 @@
             <h3>Dataset (CSV)</h3>
             <p>Sube los datos de Kaggle</p>
         }
-    </div>
+        </div>
 
     </div>
+
+    @if (AnalysisResult) {
+  <div class="analysis-results-container fade-in">
+    <header class="analysis-header">
+      <h2>🔬 Reporte del Scientist Agent</h2>
+      <span class="badge" [class.restricted]="AnalysisResult.response_mode === 'restricted'">
+        Modo: {{ AnalysisResult.response_mode }}
+      </span>
+    </header>
+
+    <div class="analysis-content">
+      <section class="result-card main-summary">
+        <h3>Resumen del Experimento</h3>
+        <p>{{ AnalysisResult.experiment_summary }}</p>
+      </section>
+
+      <div class="result-row">
+        <section class="result-card">
+          <h3>📋 Protocolo / Configuración</h3>
+          <p>{{ AnalysisResult.protocol_or_setup }}</p>
+        </section>
+        <section class="result-card">
+          <h3>🔍 Observaciones Clave</h3>
+          <p>{{ AnalysisResult.observations_and_analysis }}</p>
+        </section>
+      </div>
+
+      <section class="result-card next-steps">
+        <h3>🚀 Próximos Pasos Sugeridos</h3>
+        <div class="steps-grid">
+          @for (step of AnalysisResult.next_steps; track $index) {
+            <div class="step-item">
+              <strong>{{ step.suggestion }}</strong>
+              <p>{{ step.reasoning }}</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (AnalysisResult.safety_assessment) {
+        <section class="result-card safety-alert">
+          <h3>⚠️ Evaluación de Seguridad</h3>
+          <p>{{ AnalysisResult.safety_assessment }}</p>
+        </section>
+      }
+    </div>
+  </div>
+}
 
     <div class="results-preview">
         <div class="agent-thought" [class.error-border]="agentThought.includes('Error') || agentThought.includes('Cuidado')">

@@ -1,5 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { Data } from '../../services/data';
+import { AnalysisResponse, Data } from '../../services/data';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -52,6 +52,8 @@ export class Dashboard {
   selectedCSVName: string | null = null;
   CSVAzureUrl: string = '';
   tempCSVFile: File | null = null;
+
+  public AnalysisResult?: AnalysisResponse; 
   
   //Estadp para el boton de envio
    showConfirmButtons = false;
@@ -199,49 +201,61 @@ confirmUpload(type: 'pdf' | 'img' | 'csv') {
 
 
 private processUpload(file: File, type: 'pdf' | 'img' | 'csv' ) {
+  const backendType: 'pdf' | 'csv' | 'image' = type === 'img' ? 'image' : type; 
   // 1. Activamos el spinner correspondiente
   if (type === 'pdf') this.isUploadingPDF = true;
   else if (type === 'img') this.isUploadingIMG = true;
   else if (type === 'csv') this.isUploadingCSV = true;
 
-  // 2. Llamamos al servicio pasando el tipo
-  this.dataService.uploadFile(file, type).subscribe({
-    next: (response) => {
-      console.log(`Subida de ${type} exitosa:`, response);
-      
-      // 3. Desactivamos el spinner
-      if (type === 'pdf') {
-        this.isUploadingPDF = false;
-        this.selectedPDFName = file.name;
-        this.PDFAzureUrl = response.file_url;
-      }
-      else if (type === 'img') {
-        this.isUploadingIMG = false;
-        this.selectedIMGName = file.name;
-        this.IMGAzureUrl = response.file_url;
-      } else if (type === 'csv') {
-        this.isUploadingCSV = false;
-        this.selectedCSVName = file.name;
-        this.CSVAzureUrl = response.file_url;
-      }
-      this.agentThought = `Archivo ${file.name} sincronizado con éxito.`;
-    },
+  this.agentThought = `Subiendo ${file.name} al laboratorio virtual...`;
+
+  // 2. Subida del archivo binario
+  this.dataService.uploadFile(file).subscribe({
+    next: (uploadRes) => {
+      console.log('Subida exitosa, iniciando análisis:', uploadRes);
+      this.agentThought = `Archivo en Azure. Iniciando análisis científico de ${type.toUpperCase()}...`;
+
+      // 2.1 Analisis automatico usando blob_name recibido
+      this.dataService.analyzeFile(backendType, uploadRes.blob_name).subscribe({
+        next: (analysisRes) => {
+          //Guardamos resultado para el dashboard
+          this.AnalysisResult = analysisRes; 
+
+          //Apagamos spinners y actualizamos UI
+          this.finalizeUpload(type, file.name, uploadRes.file_url);
+
+          this.agentThought = `Análisis completado. He generado un resumen del experimento y evaluado los riesgos.`;
+        },
+        error: (err) => {
+          this.handleUploadError(type, 'error en el análisis científico');
+        }
+      });
+    }, 
     error: (err) => {
-      console.error(`Error al subir ${type}:`, err);
-      this.isUploadingPDF = false;
-      this.isUploadingIMG = false;
-      this.isUploadingCSV = false;
-      //alert(`Error al subir el archivo ${type}. Revisa la consola.`);
-      // Se limpian archivos temporales para que el usuario pueda reintentar
-      this.revertUpload(type);
-      this.agentThought = `Ocurrió un error al subir el ${type}. Por favor, verifica tu conexión.`;
+      this.handleUploadError(type, 'error de conexión con Azure');
     }
   });
-
+      
 }
 
+// Método auxiliar para limpiar el código y no repetir lógica de apagado
+private finalizeUpload(type: string, fileName: string, url: string) {
+  this.isUploadingPDF = false;
+  this.isUploadingIMG = false;
+  this.isUploadingCSV = false;
 
+  if (type === 'pdf') { this.selectedPDFName = fileName; this.PDFAzureUrl = url; }
+  else if (type === 'img') { this.selectedIMGName = fileName; this.IMGAzureUrl = url; }
+  else if (type === 'csv') { this.selectedCSVName = fileName; this.CSVAzureUrl = url; }
+}
 
+private handleUploadError(type: string, reason: string) {
+  this.isUploadingPDF = false;
+  this.isUploadingIMG = false;
+  this.isUploadingCSV = false;
+  this.revertUpload(type as any);
+  this.agentThought = `Error: falló debido a ${reason}. Reintenta, por favor.`;
+}
 }
 
 
