@@ -6,8 +6,8 @@ bp = func.Blueprint()
 @bp.route(route="health", methods=["GET"])
 def health_endpoint(req: func.HttpRequest) -> func.HttpResponse:
     payload = {
-        "status": "online",
-        "message": "Todo bajo control. Al menos nada se está quemando de momento...",
+        "status": "ok",
+         "message": "Service is running",
     }
     return func.HttpResponse(
         json.dumps(payload),
