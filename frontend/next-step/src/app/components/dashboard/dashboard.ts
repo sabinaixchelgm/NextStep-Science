@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
+
 export class Dashboard {
 
   ngOnInit() {
@@ -28,17 +29,27 @@ export class Dashboard {
     { role: 'assistant', text: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?' }
   ];
   isTyping: boolean = false;
+  agentThought: string = 'Bienvenido, colega. Sube un manual o un diagrama para comenzar el análisis.';
 
   // Estados para el archivo PDF
   isDraggingPDF = false;
   selectedPDFName: string | null = null;
   isUploadingPDF = false;
+  PDFAzureUrl: string = '';  //Almacena la url de Azure
+  tempPDFFile: File | null = null;
+ 
 
   // Estados para la Imagen
   isDraggingIMG = false;
   isUploadingIMG = false;
   selectedIMGName: string | null = null;
+  IMGAzureUrl: string = '';
+  tempIMGFile: File | null = null;
   
+  //Estadp para el boton de envio
+   showConfirmButtons = false;
+
+
   constructor(private dataService: Data){}
 
   //Funcion para scroll hacia el fondo
@@ -102,10 +113,45 @@ onDrop(event: DragEvent, type: 'pdf' | 'img') {
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
         const file = files[0];
-        console.log("¡Archivo capturado con éxito!", file.name);
-        this.processUpload(file, type);
+        // En lugar de subirlo, lo guardamos en "espera"
+        if (type === 'pdf') {
+            this.tempPDFFile = file; // Tienes que declarar esta variable arriba
+            this.selectedPDFName = file.name;
+            this.agentThought = `He cargado "${file.name}" localmente. ¿Confirmas la subida a Azure o prefieres revertir?`;
+        } else {
+            this.tempIMGFile = file; // Tienes que declarar esta variable arriba
+            this.selectedIMGName = file.name;
+            this.agentThought = `Imagen "${file.name}" lista. ¿Deseas subirla?`;
+        }
+        
+        this.showConfirmButtons = true; // Mostramos los botones en el HTML
     }
 }
+
+// NUEVO: Función para el botón de "Revertir"
+revertUpload(type: 'pdf' | 'img') {
+    if (type === 'pdf') {
+        this.tempPDFFile = null;
+        this.selectedPDFName = null;
+    } else {
+        this.tempIMGFile = null;
+        this.selectedIMGName = null;
+    }
+    this.showConfirmButtons = false;
+    this.agentThought = "Archivo descartado. El sistema sigue esperando un documento válido.";
+}
+
+// NUEVO: Función para el botón de "Confirmar"
+confirmUpload(type: 'pdf' | 'img') {
+    const fileToUpload = type === 'pdf' ? this.tempPDFFile : this.tempIMGFile;
+    
+    if (fileToUpload) {
+        this.showConfirmButtons = false; // Ocultamos los botones mientras sube
+        this.processUpload(fileToUpload, type); // Aquí sí llamamos a Azure
+    }
+}
+
+
 
 private processUpload(file: File, type: 'pdf' | 'img') {
   // 1. Activamos el spinner correspondiente
@@ -120,18 +166,22 @@ private processUpload(file: File, type: 'pdf' | 'img') {
       // 3. Desactivamos el spinner
       if (type === 'pdf') {
         this.isUploadingPDF = false;
-        this.selectedPDFName = file.name; // Guardamos el nombre para mostrarlo
+        this.selectedPDFName = file.name;
+        this.PDFAzureUrl = response.file_url;
       }
       if (type === 'img') {
         this.isUploadingIMG = false;
         this.selectedIMGName = file.name;
+        this.IMGAzureUrl = response.file_url;
       }
+      this.agentThought = `Archivo ${file.name} sincronizado con éxito.`;
     },
     error: (err) => {
-      console.error(`Error al subir ${type}:`, err);
+      //console.error(`Error al subir ${type}:`, err);
       this.isUploadingPDF = false;
       this.isUploadingIMG = false;
-      alert(`Error al subir el archivo ${type}. Revisa la consola.`);
+      //alert(`Error al subir el archivo ${type}. Revisa la consola.`);
+      this.agentThought = "Error en el servidor. Reintenta en un momento.";
     }
   });
 

@@ -15,17 +15,29 @@
     <div class="upload-grid">
         <div class="drop-zone"
         [class.dragging]="isDraggingPDF"
-         (dragover)="onDragOver($event, 'pdf')"
-         (dragleave)="onDragLeave('pdf')"
-         (drop)="onDrop($event, 'pdf')">
-         @if (isUploadingPDF) {
+        (dragover)="onDragOver($event, 'pdf')"
+        (dragleave)="onDragLeave('pdf')"
+        (drop)="onDrop($event, 'pdf')">
+
+        @if (isUploadingPDF) {
             <div class="spinner"></div>
             <p>Subiendo manual...</p>
-        } @else if (selectedPDFName) {
+        } 
+        @else if (selectedPDFName) {
             <span class="icon">✅</span>
             <h3>{{ selectedPDFName }}</h3>
-            <p>Archivo listo</p>
+
+        @if (showConfirmButtons) {
+            <p>¿Es el archivo correcto?</p>
+            <div class="action-buttons">
+                <button (click)="confirmUpload('pdf')" class="btn-confirm">✅ Confirmar</button>
+                <button (click)="revertUpload('pdf')" class="btn-revert">❌ Revertir</button>
+            </div>
         } @else {
+            <p>Archivo listo y sincronizado</p>
+        }
+    } 
+        @else {
             <span class="icon">📄</span>
             <h3>Protocolo (PDF)</h3>
             <p>Arrastra el manual del experimento</p>
@@ -61,9 +73,9 @@
     </div>
 
     <div class="results-preview">
-        <div class="agent-thought">
+        <div class="agent-thought" [class.error-border]="agentThought.includes('Error')">
             <strong>🤖 Scientist Agent:</strong>
-            "Analizando protocolo... Se detecta que el límite de temperatura es 40°C."
+            "{{ agentThought }}"
         </div>
 
         <div class="data-chart-placeholder">

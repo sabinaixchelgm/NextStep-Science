@@ -39,6 +39,41 @@
     margin-bottom: 30px;
 }
 
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.btn-confirm, .btn-revert {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.btn-confirm {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-revert {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-confirm:hover, .btn-revert:hover {
+    transform: scale(1.05);
+}
+
+.icon-check {
+    font-size: 20px;
+    color: #28a745;
+}
+
 .drop-zone {
     border: 2px dashed #DADCE0;
     border-radius: 8px;
