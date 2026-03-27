@@ -4,6 +4,7 @@ import azure.functions as func
 from services.extraction_service import extract_data
 from services.ai_service import generate_insight
 from services.memory_service import load_session, save_session
+from services.content_safety import check_text
 
 bp = func.Blueprint()
 
@@ -37,14 +38,38 @@ def analyze_endpoint(req: func.HttpRequest) -> func.HttpResponse:
             session_state["context"].append(extracted_text)
             
             # Prompt interno automático para la primera respuesta del archivo
-            user_message = "Analiza el documento adjunto y extrae los puntos clave."
+            user_message = "Analyze the attached document and extract the key points."
 
         # Construcción del prompt con todo el contexto acumulado (RAG-lite)
         all_docs_context = "\n---\n".join(session_state["context"])
-        full_prompt = f"{user_message}\n\n[Contexto acumulado de documentos]:\n{all_docs_context}"
+        full_prompt = f"{user_message}\n\n[Accumulated document context]:\n{all_docs_context}"
+
+        # Content Safety check on input
+        if check_text(full_prompt):
+            return func.HttpResponse(
+                json.dumps({
+                    "response_mode": "restricted",
+                    "security_message": "Content blocked by safety policies.",
+                    "session_id": session_id
+                }),
+                status_code=400,
+                mimetype="application/json"
+            )
 
         # Llamada al LLM con historial
         raw_response: str = generate_insight(full_prompt, history=session_state["history"])
+        
+        # Content Safety check on output
+        if check_text(raw_response):
+            return func.HttpResponse(
+                json.dumps({
+                    "response_mode": "restricted",
+                    "security_message": "Response blocked by safety policies.",
+                    "session_id": session_id
+                }),
+                status_code=200,
+                mimetype="application/json"
+            )
         
         try:
             response_data: dict = json.loads(raw_response)
@@ -59,7 +84,7 @@ def analyze_endpoint(req: func.HttpRequest) -> func.HttpResponse:
         # Post-procesamiento de seguridad original
         if response_data.get("response_mode") == "restricted":
             response_data.pop("next_steps", None)
-            response_data["security_message"] = "Contenido restringido por seguridad."
+            response_data["security_message"] = "Content restricted by safety policies."
 
         response_data["session_id"] = session_id
 
