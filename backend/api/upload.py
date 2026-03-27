@@ -5,6 +5,7 @@ import azure.functions as func
 from services.validation import is_content_valid, ALLOWED_EXTENSIONS
 from services.blob_service import upload_to_blob
 import logging
+from services.content_safety import check_image  # ✅ agregado
 
 bp = func.Blueprint()
 
@@ -28,6 +29,21 @@ def upload_endpoint(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(json.dumps({"error": "Invalid content"}), status_code=400, mimetype="application/json")
 
     input_type: str = "image" if ext in ['.png', '.jpg', '.jpeg'] else "csv" if ext == '.csv' else "pdf"
+
+    if input_type == "image":
+        try:
+            if check_image(file_bytes):
+                return func.HttpResponse(
+                    json.dumps({
+                        "error": "Image blocked by safety policies.",
+                        "response_mode": "restricted"
+                    }),
+                    status_code=400,
+                    mimetype="application/json"
+                )
+        except Exception as e:
+            logging.exception("Content Safety image check failed")
+
     blob_name: str = f"{uuid.uuid4()}-{original_filename}"
 
     file_url: str = upload_to_blob(blob_name, file_bytes)
