@@ -10,11 +10,7 @@ bp = func.Blueprint()
 
 @bp.route(route="upload", methods=["POST"])
 def upload_endpoint(req: func.HttpRequest) -> func.HttpResponse:
-    # --- DEBUG BLOQUE ---
-    logging.info(f"Content-Type entrante: {req.headers.get('Content-Type')}")
-    logging.info(f"Body size: {len(req.get_body())} bytes")
-    logging.info(f"Files detectados: {req.files.keys()}")
-    # -------------------
+
     files = req.files
     if not files or not files.getlist('file'):
         return func.HttpResponse(json.dumps({"error": "Missing file"}), status_code=400, mimetype="application/json")
