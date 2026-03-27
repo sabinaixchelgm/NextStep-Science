@@ -1,16 +1,54 @@
 .list-experiments { 
-    height: 100%; /* Para que ocupe todo el alto disponible */
+    height: 100vh; /* Cambié a 100vh para asegurar el alto total */
     border-right: 1.5px solid #DADCE0;
     background-color: #f8f9fa;
     padding: 20px;
+    width: 280px; /* Ancho base */
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
+/* --- ESTADO COLAPSADO --- */
+.list-experiments.collapsed {
+    width: 75px;
+    padding: 20px 10px; /* Reducimos padding lateral */
+}
+
+.toggle-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end; /* Botón a la derecha por defecto */
+}
+
+.list-experiments.collapsed .toggle-container {
+    justify-content: center; /* Botón al centro si está colapsado */
+}
+
+.hamburger-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #70757a;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.hamburger-btn:hover {
+    background: #eeeeee;
+}
+
+/* Ajustes a tus clases originales */
 .sidebar-content h3 {
-    font-size: 0.9rem;
+    font-size: 0.8rem; /* Un poco más pequeño para h3 */
     color: #70757a;
     margin-bottom: 15px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .history-item {
@@ -21,30 +59,20 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
-    transition: background 0.2s;
+    gap: 12px;
+    transition: background 0.2s, padding 0.3s;
+    white-space: nowrap;
+    min-width: 0; /* Evita que el flexbox se desborde */
 }
 
-.history-item.active {
-    background: #e8f0fe;
-    color: #1967d2;
-    font-weight: 500;
+.list-experiments.collapsed .history-item {
+    padding: 12px 18px; /* Centramos el punto en el modo pequeño */
+    justify-content: center;
 }
 
-.history-item:hover:not(.active) {
-    background: #eeeeee;
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.green {
-    background: #34a853;
-}
-
-.gray {
-    background: #9aa0a6;
-}
+/* Tus estilos de colores se mantienen igual */
+.history-item.active { background: #e8f0fe; color: #1967d2; font-weight: 500; }
+.history-item:hover:not(.active) { background: #eeeeee; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.green { background: #34a853; }
+.gray { background: #9aa0a6; }

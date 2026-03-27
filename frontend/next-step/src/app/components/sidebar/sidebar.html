@@ -1,20 +1,22 @@
-<aside class="list-experiments">
+<aside class="list-experiments" [class.collapsed]="isCollapsed">
+    
+    <div class="toggle-container">
+        <button class="hamburger-btn" (click)="toggleSidebar()" [title]="isCollapsed ? 'Expandir' : 'Contraer'">
+            {{ isCollapsed ? '☰' : '☰' }}
+        </button>
+    </div>
 
-            <div class="sidebar-content">
+    <div class="sidebar-content">
+        <h3 *ngIf="!isCollapsed"><strong>Historial</strong></h3>
+        
+        <div class="history-item active" [title]="isCollapsed ? 'Análisis #001 - Sensores' : ''">
+            <span class="status-dot green"></span>
+            <span *ngIf="!isCollapsed">Análisis #001 - Sensores</span>
+        </div>
 
-                <h3>Historial</h3>
-                <div class="history-item active">
-                    <span class="status-dot green"></span>
-                    Análisis #001 - Sensores
-                </div>
-
-                <div class="history-item">
-
-                    <span class="status-dot gray"></span>
-                    Protocolo Destilación
-
-                </div>
-
-            </div>
-
-        </aside>
+        <div class="history-item" [title]="isCollapsed ? 'Protocolo Destilación' : ''">
+            <span class="status-dot gray"></span>
+            <span *ngIf="!isCollapsed">Protocolo Destilación</span>
+        </div>
+    </div>
+</aside>
