@@ -3,6 +3,9 @@
 NextStep Science is a safety-first AI lab assistant designed to help researchers reason over experiments without replacing scientific judgment.
 
 The system can interpret experimental protocols, analyze results from text, CSV files, PDFs, or images, and suggest bounded next-step variations with clear explanations. It is built with a strong focus on explainability, responsible AI, and safe orchestration across Azure services.
+<p align="center">
+  <img src="./NextStep-Science%20-%20workflow.png" alt="Workflow" width="600">
+</p>
 
 ---
 
