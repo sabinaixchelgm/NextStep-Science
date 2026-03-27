@@ -3,6 +3,7 @@ azure-storage-blob
 azure-ai-formrecognizer
 azure-cognitiveservices-vision-computervision
 azure-ai-projects>=2.0.0
+azure-ai-contentsafety==1.0.0
 azure-identity
 filetype
 Pillow
