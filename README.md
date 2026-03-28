@@ -2,243 +2,232 @@
 
 NextStep Science is a safety-first AI lab assistant designed to help researchers reason over experiments without replacing scientific judgment.
 
-The system can interpret experimental protocols, analyze results from text, CSV files, PDFs, or images, and suggest bounded next-step variations with clear explanations. It is built with a strong focus on explainability, responsible AI, and safe orchestration across Azure services.
+The system interprets experimental protocols, analyzes results from text, CSV files, PDFs, or images, and suggests safe, bounded next steps with clear explanations.
+
+It is built with a strong focus on:
+- Responsible AI
+- Safety enforcement
+- Explainability
+- Real-world lab constraints
+
+<p align="center">
+  <img src="./NextStep-Science%20-%20workflow.png" alt="Workflow" width="600">
+</p>
 
 ---
 
 ## Project Goal
 
-The goal of this project is to build an AI-powered research support tool that helps users:
+The goal of this project is to build an AI-powered research assistant that helps users:
 
 - Understand experimental inputs
-- Analyze structured and unstructured results
-- Surface uncertainties and missing context
-- Suggest safe next-step options
-- Explain why each recommendation is made
-- Avoid unsafe or disallowed advisory behavior
+- Analyze structured and unstructured data
+- Identify patterns and uncertainties
+- Suggest safe next steps
+- Prevent unsafe or hazardous recommendations
 
-This is not meant to replace a scientist, clinician, or domain expert. It is an assistive tool for structured reasoning and safe exploration.
-
----
-
-## Core Idea
-
-The product receives an experiment description or uploaded file, processes the content, applies safety checks, and generates a structured response with:
-
-- Protocol Interpretation
-- Results Analysis
-- Next Step Recommendations
-- Rationale / Why
-- Safety / Confidence Notes
+This tool does NOT replace scientific expertise.  
+It augments reasoning while enforcing strict safety boundaries.
 
 ---
 
-## Main User Flow
+## Core Capabilities
 
-1. User enters an experiment description or uploads a file
-2. File is stored in Azure Blob Storage
-3. If needed, the content is extracted from PDFs or images
-4. Safety checks are applied to the input
-5. The AI system analyzes the experiment and generates a structured response
-6. Safety checks are applied again to the output
-7. The result is shown in the web interface
+- Upload and analyze:
+  - PDFs (lab protocols)
+  - Images (experimental setups, notes)
+  - CSV datasets
+  - Text input (chat)
+
+- Extract and process experimental content
+- Maintain conversational context (session-based memory)
+- Generate structured scientific insights
+- Enforce **multi-layer safety filtering**
 
 ---
 
-## Azure Architecture Overview
+## Architecture 
 
-### 1. Frontend
-**Purpose:** User interface for uploading files, writing experiment descriptions, and viewing results.
-
+### Frontend
 **Tech:**
-- React
-- Vite
-- JavaScript
-- HTML / CSS or Tailwind
+- Angular
+- TypeScript
 
-**Azure Hosting:**
-- Azure Container Apps
-
-**Owned by:**
-- Web UI team
+**Responsibilities:**
+- File upload (PDF, CSV, Image)
+- Chat interface
+- Display structured results
+- Enforce UI-level safety blocking (critical for UX)
 
 ---
 
-### 2. File Storage Layer
-**Purpose:** Store uploaded CSVs, PDFs, and images.
+### Backend
+**Tech:**
+- Azure Functions (Python)
 
-**Azure Service:**
-- Azure Blob Storage
+**Endpoints:**
+- `/upload`
+- `/analyze`
+- `/health`
 
-**What goes here:**
-- Raw user uploads
-- Temporary processed files if needed
-
-**Owned by:**
-- AI / backend team
-
----
-
-### 3. Backend Orchestration Layer
-**Purpose:** Receive requests from the UI, route the data, call Azure AI services, and return the final result.
-
-**Azure Service:**
-- Azure Functions
-
-**Main responsibilities:**
-- Receive experiment text or file reference
-- Trigger extraction if needed
-- Call safety checks
-- Call AI reasoning layer
-- Return structured JSON response
-
-**Owned by:**
-- AI / backend team
+**Responsibilities:**
+- Handle requests from frontend
+- Manage session memory
+- Route processing logic
+- Call AI + safety services
+- Return structured JSON
 
 ---
 
-### 4. Document and Image Extraction
-**Purpose:** Read and extract content from PDFs, scanned documents, or images.
-
-**Azure Service:**
-- Azure AI Document Intelligence
-
-**Used for:**
-- PDF protocols
-- Images containing notes, tables, or results
-- Scanned lab documents
-
-**Not needed for:**
-- Plain text input
-- Raw CSV files
-
-**Owned by:**
-- AI / backend team
+### Storage
+**Azure Blob Storage**
+- Stores uploaded files
+- Generates `blob_name` used in analysis
 
 ---
 
-### 5. Safety Layer
-**Purpose:** Enforce responsible AI boundaries and filter unsafe or disallowed content.
+### Extraction Layer
 
-**Azure Service:**
-- Azure AI Content Safety
+**Azure AI Document Intelligence**
+- Extracts text from:
+  - PDFs
+  - Images
 
-**Used for:**
+---
+
+### AI Reasoning Layer
+
+**Azure AI Projects + GPT-4.1 Mini**
+
+- Uses an Azure AI Agent
+- Generates:
+  - experiment_summary
+  - protocol_or_setup
+  - observations_and_analysis
+  - next_steps
+  - safety_assessment
+
+---
+
+### Safety Layer (CRITICAL)
+
+We use a **multi-layer safety approach**:
+
+#### 1. Azure AI Content Safety
 - Input moderation
 - Output moderation
-- Blocking unsafe biological or clinical-style advisory behavior
-- Detecting risky content patterns
 
-**Owned by:**
-- AI / safety logic team
+#### 2. Custom Lab Safety Rules (Backend)
+- Blocks unsafe experimental requests
+- Detects:
+  - hazardous modifications
+  - high-reactivity suggestions
+  - unsafe chemical advice
 
----
-
-### 6. Reasoning Layer
-**Purpose:** Interpret the experiment, analyze the content, and produce structured recommendations.
-
-**Azure Service:**
-- Azure OpenAI
-
-**What it does:**
-- Understand the protocol
-- Analyze results
-- Identify uncertainty
-- Suggest bounded next-step options
-- Explain the reasoning
-
-**Owned by:**
-- AI team
+#### 3. Frontend Safety Guard (UI)
+- Immediate blocking before API call
+- Prevents unsafe prompts from reaching backend
 
 ---
 
-### 7. Retrieval / Grounding Layer
-**Purpose:** Provide relevant context from uploaded experiment documents or indexed project files.
+## Main Flow
 
-**Azure Service:**
-- Azure AI Search
-
-**Used for:**
-- Retrieval over uploaded documents
-- Grounded responses
-- RAG-style architecture
-- Future support for experiment history or notebook memory
-
-**Owned by:**
-- AI / backend team
+1. User uploads file or sends text
+2. File stored in Blob Storage
+3. Content extracted (if needed)
+4. Session context updated
+5. Safety checks applied (input)
+6. AI generates structured response
+7. Safety checks applied (output)
+8. UI renders safe result
 
 ---
 
-### 8. Monitoring and Diagnostics
-**Purpose:** Track system health, logs, response times, and failures.
+## Safety Philosophy
 
-**Azure Services:**
-- Azure Monitor
-- Application Insights
+This system is designed to:
 
-**Used for:**
-- Error logging
-- Request tracing
-- Performance monitoring
-- Demo reliability
-
-**Owned by:**
-- Backend / platform team
+- Prevent unsafe chemical recommendations
+- Avoid hazardous experimental guidance
+- Restrict manipulation attempts on the AI
+- Ensure all outputs remain scientifically responsible
 
 ---
 
-## Suggested Team Split
+## Branch Structure
 
-### Web UI Team
-Responsible for:
-- Main interface design
-- Upload experience
-- Input form
-- Result cards
-- Loading state
-- Safety badge / status
-- Connecting frontend to backend API
-
-**Frontend deliverable:**
-A single main screen where the user can:
-- Write an experiment description
-- Upload a CSV, PDF, or image
-- Click `Analyze Experiment`
-- View structured results
+| Branch | Purpose |
+|------|--------|
+| `main` | Stable version |
+| `backend` | Core backend logic |
+| `backend-azure` | Azure-integrated backend (production logic) |
+| `frontend` | Angular UI |
+| `problematica` | Early/problem exploration |
 
 ---
 
-### AI / Backend Team
-Responsible for:
-- Azure setup
-- Blob Storage integration
-- Azure Functions API
-- Document extraction
-- Content Safety flow
-- Azure OpenAI prompting and structured output
-- Optional Azure AI Search integration
+## Key Design Decisions
 
-**Backend deliverable:**
-A working API that receives input and returns structured analysis.
+- Use **GPT-4.1 Mini** → cost-efficient + fast
+- Use **Azure AI Projects** instead of raw OpenAI calls
+- Avoid over-engineering (no unnecessary RAG layer)
+- Enforce safety at **multiple layers**
+- Keep responses structured for UI rendering
 
 ---
 
-## Suggested Structured Output
+## What We Removed (on purpose)
 
-```json
-{
-  "protocol_interpretation": "Summary of what the system understood from the experiment.",
-  "results_analysis": "Analysis of the uploaded data, image, or protocol findings.",
-  "next_step_recommendations": [
-    {
-      "type": "conservative",
-      "suggestion": "Repeat measurement with one controlled variable adjusted.",
-      "why": "This helps validate whether the observed trend is stable."
-    }
-  ],
-  "uncertainties": [
-    "Sample size is not clearly specified."
-  ],
-  "safety_status": "checked"
-}
-```
+To keep the system simple and focused:
+
+- ❌ Azure AI Search (not needed for current scope)
+- ❌ Complex RAG pipelines
+- ❌ Over-engineered orchestration layers
+
+---
+
+## Why This Matters
+
+Many AI systems:
+- can be manipulated
+- provide unsafe scientific suggestions
+- lack domain-aware safeguards
+
+NextStep Science solves this by combining:
+
+- Structured reasoning
+- Context-aware analysis
+- Multi-layer safety enforcement
+
+---
+
+## Future Improvements
+
+- Fine-tuned lab safety classifier
+- Structured output enforcement (strict JSON schema)
+- Experiment tracking dashboard
+- Advanced uncertainty modeling
+
+---
+
+## Team Focus
+
+### Frontend
+- UX
+- Chat experience
+- Safety feedback
+- Visualization
+
+### Backend / AI
+- AI orchestration
+- Safety enforcement
+- Extraction + processing
+- Session memory
+
+---
+
+## Summary
+
+NextStep Science is not just another AI assistant.
+
+It is a **safe, controlled, and explainable lab reasoning system** built for real-world scientific workflows.
