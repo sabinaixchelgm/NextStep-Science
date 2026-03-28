@@ -2,6 +2,8 @@
 
 NextStep Science is a safety-first AI lab assistant designed to help researchers reason over experiments without replacing scientific judgment.
 
+http://20.124.107.204/
+
 The system interprets experimental protocols, analyzes results from text, CSV files, PDFs, or images, and suggests safe, bounded next steps with clear explanations.
 
 It is built with a strong focus on:
