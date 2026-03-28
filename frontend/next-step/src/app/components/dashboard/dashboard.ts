@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, OnInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -12,7 +12,7 @@ import { AnalysisResponse, Data, UploadResponse, NextStep } from '../../services
   styleUrl: './dashboard.css',
 })
 export class Dashboard implements OnInit {
-  constructor(private dataService: Data) {}
+  constructor(private dataService: Data, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     // Evita que el navegador abra archivos si se sueltan fuera de la zona
@@ -88,73 +88,95 @@ export class Dashboard implements OnInit {
   }
 
   //Funcion para envio de mensajes
-  onSendMessage() {
-  // 1. Validación de seguridad: no enviar si está vacío o si ya está cargando
+onSendMessage() {
   if (!this.userInput.trim() || this.isTyping) return;
 
   const tempMessage = this.userInput;
-  
-  // 2. UI: Agregamos el mensaje del usuario al chat
   this.chatHistory.push({ role: 'user', text: tempMessage });
   this.userInput = '';
   this.isTyping = true;
   this.scrollToBottom();
 
-  // 3. REFUERZO: Creamos un prompt que obligue a la IA a analizar, no solo repetir
-  // Esto ayuda a que el modelo entienda que debe ser un asistente científico.
   const finalPrompt = `Analiza lo siguiente basándote en los archivos cargados: ${tempMessage}`;
 
-  // 4. Llamada al servicio con debugging
   this.dataService.analyze({
     type: 'text',
     text: finalPrompt,
-    // Aseguramos que tome el ID de la sesión actual del servicio
     session_id: (this.dataService as any).currentSessionId 
   }).subscribe({
-next: (res: AnalysisResponse) => {
-  console.log('Respuesta completa del server:', res);
+    next: (res: any) => {
+  console.log('Respuesta recibida:', res);
+  this.isTyping = false;
 
-  // 1. Construimos una respuesta enriquecida
   let fullResponse = '';
+  // Detectamos si la respuesta es una negativa de seguridad dentro del JSON
+  const isRefusal = res.observations_and_analysis?.includes("I'm sorry") || 
+                    res.observations_and_analysis?.includes("cannot assist");
 
-  if (res.analysis) {
-    fullResponse = res.analysis;
-  } else if (res.observations_and_analysis) {
-    // Si el backend manda el formato de reporte, lo unimos para el chat
+  if (isRefusal) {
     fullResponse = `
-      <b>Análisis Técnico:</b><br>${res.observations_and_analysis}<br><br>
-      <b>Evaluación de Seguridad:</b><br>${res.safety_assessment}
+      <div style="background: #fff3e0; border-left: 6px solid #ff9800; padding: 15px; border-radius: 4px; color: #856404;">
+        <b style="font-size: 1.1em;">🛑 PROTOCOLO DE SEGURIDAD ACTIVADO</b><br>
+        <b>Resumen del Intento:</b> ${res.experiment_summary}<br><br>
+        <b>Decisión del Laboratorio:</b> ${res.observations_and_analysis}
+      </div>
     `;
-    
-    // Si quieres mostrar también los consejos:
-    if (res.next_steps && res.next_steps.length > 0) {
-      fullResponse += `<br><br><b>Sugerencias:</b><ul>`;
-      res.next_steps.forEach(step => {
-        fullResponse += `<li>${step.suggestion}</li>`;
-      });
-      fullResponse += `</ul>`;
-    }
+  } else if (res.observations_and_analysis || res.safety_assessment) {
+    // CASO FELIZ (Análisis normal)
+    fullResponse = `
+      <div class="report-container">
+        <b style="color: #2c3e50;">🔬 Análisis Técnico:</b><br>
+        ${res.observations_and_analysis}<br><br>
+        <b style="color: #d32f2f;">⚠️ Evaluación de Seguridad:</b><br>
+        ${res.safety_assessment || 'Consulte protocolos estándar.'}
+      </div>
+    `;
   } else {
-    fullResponse = res.experiment_summary || 'Análisis completado.';
+    fullResponse = res.experiment_summary || 'Procesamiento finalizado.';
   }
 
-  // 2. Insertamos en la UI
-  this.chatHistory.push({
-    role: 'assistant',
-    text: fullResponse
-  });
-
-  this.isTyping = false;
-  this.scrollToBottom();
+  // Forzamos el renderizado
+  setTimeout(() => {
+    this.chatHistory.push({ role: 'assistant', text: fullResponse });
+    this.scrollToBottom();
+    this.cdr.detectChanges(); 
+  }, 100);
 },
     error: (err: any) => {
-      console.error('Error en el flujo del chat:', err);
+      console.error('Error detectado en la llamada:', err);
       this.isTyping = false;
-      this.chatHistory.push({
-        role: 'assistant',
-        text: 'Error de comunicación con el laboratorio virtual. Verifica tu conexión.'
-      });
-      this.scrollToBottom();
+
+      // Extraemos el cuerpo del error (puede venir como objeto o string)
+      let errorBody = err.error;
+      if (typeof errorBody === 'string') {
+        try { errorBody = JSON.parse(errorBody); } catch (e) { console.error("Error body no es JSON"); }
+      }
+
+      // Mapeamos el error 400 de seguridad que viste en Network
+      const isSecurity = err.status === 400 && (errorBody?.response_mode === 'restricted' || errorBody?.security_message);
+      
+      const alertBg = isSecurity ? '#fff3e0' : '#f8d7da';
+      const alertBorder = isSecurity ? '#ff9800' : '#dc3545';
+      const alertColor = isSecurity ? '#e65100' : '#721c24';
+      const title = isSecurity ? '🛑 PROTOCOLO DE SEGURIDAD' : '⚠️ ERROR DE LABORATORIO';
+      const message = isSecurity 
+        ? (errorBody.security_message || 'Contenido restringido por riesgo químico.') 
+        : `Error de conexión (${err.status}). El laboratorio no responde.`;
+
+      // LA CLAVE: El setTimeout y detectChanges para forzar la UI
+      setTimeout(() => {
+        this.chatHistory.push({
+          role: 'assistant',
+          text: `
+            <div style="background: ${alertBg}; border-left: 6px solid ${alertBorder}; padding: 15px; border-radius: 4px; color: ${alertColor};">
+              <b style="font-size: 1.1em;">${title}</b><br>
+              ${message}
+            </div>
+          `
+        });
+        this.scrollToBottom();
+        this.cdr.detectChanges(); // Esto obliga a Angular a pintar el cuadro naranja
+      }, 100);
     }
   });
 }
@@ -331,42 +353,101 @@ private processUpload(file: File, type: 'pdf' | 'img' | 'csv') {
     // 2. Subida del archivo (POST /api/upload)
     this.dataService.uploadFile(file).subscribe({
       next: (uploadRes: UploadResponse) => {
+  // 3. ANÁLISIS (POST /api/analyze)
+  const activeSession = this.dataService.currentSessionId;
+
+  this.dataService.analyze({
+      type: backendType,
+      blob_name: uploadRes.blob_name,
+      session_id: activeSession || undefined 
+    })
+    .subscribe({
+      next: (analysisRes: any) => { // Usamos any para manejar la limpieza si es necesario
+        console.log('Análisis recibido:', analysisRes);
+
+        // --- LÓGICA DE LIMPIEZA DE EMERGENCIA ---
+        let data = analysisRes;
+        if (typeof analysisRes === 'string') {
+          try {
+            // Limpiamos el JSON malformado que vimos antes (}" o "})
+            const cleanJson = analysisRes.replace(/}"/g, '}').replace(/"}/g, '}');
+            data = JSON.parse(cleanJson);
+          } catch (e) {
+            console.error("No se pudo parsear el análisis, usando crudo", e);
+          }
+        }
+        // ----------------------------------------
+
+        this.analysisResultData = data;
+        this.systemStatus = 'safe';
+
+        // Finalizamos el estado de la UI
+        this.finalizeUpload(type, file.name, uploadRes.file_url);
         
-        // 3. ANÁLISIS (POST /api/analyze)
-        // Usamos el getter que creamos en data.ts para recuperar el ID
-        const activeSession = this.dataService.currentSessionId;
-
-        this.dataService.analyze({
-            type: backendType,
-            blob_name: uploadRes.blob_name,
-            session_id: activeSession || undefined // Si no hay sesión, se envía undefined (Caso A)
-          })
-          .subscribe({
-            next: (analysisRes: AnalysisResponse) => {
-              this.analysisResultData = analysisRes;
-              this.systemStatus = 'safe';
-
-              // Finalizamos el estado de la UI
-              this.finalizeUpload(type, file.name, uploadRes.file_url);
-              
-              // Mensaje inteligente según si es el primero o ya había una sesión
-              this.agentThought = activeSession 
-                ? `¡Logrado! ${file.name} ha sido integrado al análisis científico actual.` 
-                : `Primer archivo procesado. El laboratorio está listo para recibir más datos.`;
-            },
-            error: (err: any) => {
-              console.error('Error en análisis:', err);
-              this.analysisFailed = true;
-              this.systemStatus = 'error';
-              this.handleUploadError(type, 'error en el análisis científico');
-            },
-          });
+        // Mensaje inteligente basado en el contenido real del JSON limpio
+        if (data.observations_and_analysis || data.experiment_summary) {
+          this.agentThought = activeSession 
+            ? `¡Logrado! ${file.name} ha sido integrado al análisis científico actual.` 
+            : `Análisis de ${file.name} completado con éxito. El laboratorio está listo.`;
+        } else {
+          this.agentThought = `Archivo procesado, pero el análisis contiene advertencias de seguridad.`;
+        }
       },
       error: (err: any) => {
-        console.error('Error en subida:', err);
-        this.systemStatus = 'error';
-        this.handleUploadError(type, 'error de conexión con Azure');
-      },
+  console.error('Error capturado:', err);
+  this.isTyping = false;
+
+  let displayTitle = '⚠️ ERROR DE SISTEMA';
+  let displayText = 'El laboratorio no pudo procesar la solicitud.';
+  let isSecurity = false;
+
+  // 1. Intentamos extraer el cuerpo del error (err.error)
+  let errorBody = err.error;
+
+  // Si el error viene como String (pasa a veces en Azure), lo parseamos
+  if (typeof errorBody === 'string') {
+    try {
+      errorBody = JSON.parse(errorBody);
+    } catch (e) {
+      console.error("No se pudo parsear el cuerpo del error");
+    }
+  }
+
+  // 2. Mapeamos según lo que vimos en tu captura de Network
+  if (err.status === 400 && errorBody) {
+    if (errorBody.response_mode === 'restricted') {
+      isSecurity = true;
+      displayTitle = '🛑 BLOQUEO DE SEGURIDAD';
+      displayText = errorBody.security_message || 'Contenido restringido por políticas de riesgo químico.';
+      
+      // Mantenemos la sesión viva si el backend nos devolvió un ID
+      if (errorBody.session_id) {
+        console.log('Sesión mantenida tras bloqueo:', errorBody.session_id);
+      }
+    }
+  } else if (err.status === 502 || err.status === 504) {
+    displayText = 'El servidor tardó demasiado en responder (Timeout). Intenta con una pregunta más simple.';
+  }
+
+  // 3. Renderizamos en la UI con un estilo llamativo
+  const alertBg = isSecurity ? '#fff3e0' : '#f8d7da';
+  const alertBorder = isSecurity ? '#ff9800' : '#dc3545';
+  const alertColor = isSecurity ? '#e65100' : '#721c24';
+
+  this.chatHistory.push({
+    role: 'assistant',
+    text: `
+      <div style="background: ${alertBg}; border-left: 6px solid ${alertBorder}; padding: 15px; border-radius: 4px; color: ${alertColor}; margin: 10px 0;">
+        <b style="font-size: 1.1em;">${displayTitle}</b><br>
+        ${displayText}
+      </div>
+    `
+  });
+
+  this.scrollToBottom();
+}
+    });
+},
     });
   }
 
