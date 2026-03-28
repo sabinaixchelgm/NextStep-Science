@@ -46,7 +46,7 @@ It augments reasoning while enforcing strict safety boundaries.
 
 ---
 
-## Real Architecture (What We ACTUALLY Use)
+## Architecture 
 
 ### Frontend
 **Tech:**
