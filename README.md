@@ -163,7 +163,6 @@ This system is designed to:
 | `backend` | Core backend logic |
 | `backend-azure` | Azure-integrated backend (production logic) |
 | `frontend` | Angular UI |
-| `problematica` | Early/problem exploration |
 
 ---
 
